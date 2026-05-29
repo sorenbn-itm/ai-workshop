@@ -8,7 +8,7 @@ using CleanCQRSPOC.Domain.Events;
 
 namespace CleanCQRSPOC;
 
-public static partial class Program
+public partial class Program
 {
     private static void Main(string[] args)
     {
@@ -21,6 +21,7 @@ public static partial class Program
         });
 
         builder.Services.AddScoped<IValidator<ProductDto>, ProductDtoValidator>();
+        builder.Services.AddScoped<IValidator<ProductQueryParameters>, ProductQueryParametersValidator>();
         builder.Services.AddScoped<ValidationFilter>();
         builder.Services.AddScoped<LoggingFilter>();
         builder.Services.AddScoped<CleanCQRSPOC.Application.Services.IEmailService, CleanCQRSPOC.Application.Services.EmailService>();

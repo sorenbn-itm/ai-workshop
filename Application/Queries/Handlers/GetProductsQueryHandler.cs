@@ -4,18 +4,33 @@ using CleanCQRSPOC.Presentation.Models;
 
 namespace CleanCQRSPOC.Application.Queries.Handlers;
 
-public class GetProductsQueryHandler(IProductRepository productRepository) : IRequestHandler<GetProductsQuery, List<ProductDto>>
+public class GetProductsQueryHandler(IProductRepository productRepository) : IRequestHandler<GetProductsQuery, PagedResult<ProductDto>>
 {
     private readonly IProductRepository _productRepository = productRepository;
 
-    public async Task<List<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<ProductDto>> Handle(GetProductsQuery request, CancellationToken cancellationToken)
     {
-        var products = await _productRepository.GetAllAsync();
-        return [.. products.Select(p => new ProductDto
+        var (products, totalCount) = await _productRepository.GetPagedAsync(
+            request.Search,
+            request.MinPrice,
+            request.MaxPrice,
+            request.Sort,
+            request.SortDir,
+            request.Page,
+            request.PageSize,
+            cancellationToken);
+
+        return new PagedResult<ProductDto>
         {
-            Id = p.Id,
-            Name = p.Name,
-            Price = p.Price
-        })];
+            Items = [.. products.Select(p => new ProductDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price
+            })],
+            Page = request.Page,
+            PageSize = request.PageSize,
+            TotalCount = totalCount
+        };
     }
 }
