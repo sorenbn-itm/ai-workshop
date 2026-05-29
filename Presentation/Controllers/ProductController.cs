@@ -13,13 +13,33 @@ public class ProductController(IMediator mediator) : ControllerBase
     private readonly IMediator _mediator = mediator;
 
     [HttpGet]
-    [ProducesResponseType(typeof(List<ProductDto>), 200)]
+    [ProducesResponseType(typeof(PagedResult<ProductDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<ProductDto>>> Get()
+    public async Task<ActionResult<PagedResult<ProductDto>>> Get([FromQuery] ProductQueryParameters query)
     {
-        var products = await _mediator.Send(new GetProductsQuery());
-        return Ok(products);
+        var result = await _mediator.Send(new GetProductsQuery
+        {
+            Page = query.Page,
+            PageSize = query.PageSize,
+            Search = query.Search,
+            MinPrice = query.MinPrice,
+            MaxPrice = query.MaxPrice,
+            Sort = ParseSortField(query.Sort),
+            SortDir = ParseSortDirection(query.SortDir)
+        });
+        return Ok(result);
     }
+
+    private static ProductSortField ParseSortField(string? sort) =>
+        string.Equals(sort, "price", StringComparison.OrdinalIgnoreCase)
+            ? ProductSortField.Price
+            : ProductSortField.Name;
+
+    private static SortDirection ParseSortDirection(string? sortDir) =>
+        string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase)
+            ? SortDirection.Desc
+            : SortDirection.Asc;
 
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ProductDto), 200)]

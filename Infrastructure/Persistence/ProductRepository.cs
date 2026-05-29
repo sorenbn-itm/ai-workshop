@@ -1,3 +1,4 @@
+using CleanCQRSPOC.Application.Queries;
 using CleanCQRSPOC.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,56 @@ public class ProductRepository(AppDbContext context) : IProductRepository
     public async Task<List<Product>> GetAllAsync()
     {
         return await _context.Products.ToListAsync();
+    }
+
+    public async Task<(List<Product> Items, int TotalCount)> GetPagedAsync(
+        string? search,
+        decimal? minPrice,
+        decimal? maxPrice,
+        ProductSortField sort,
+        SortDirection sortDir,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Products.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(p => p.Name.ToLower().Contains(term));
+        }
+
+        // SQLite stores decimal as TEXT, so price comparisons/ordering must run on a numeric
+        // cast (translated to CAST(... AS REAL)) to compare by value rather than lexically.
+        if (minPrice.HasValue)
+        {
+            var min = (double)minPrice.Value;
+            query = query.Where(p => (double)p.Price >= min);
+        }
+
+        if (maxPrice.HasValue)
+        {
+            var max = (double)maxPrice.Value;
+            query = query.Where(p => (double)p.Price <= max);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        query = (sort, sortDir) switch
+        {
+            (ProductSortField.Price, SortDirection.Desc) => query.OrderByDescending(p => (double)p.Price),
+            (ProductSortField.Price, _) => query.OrderBy(p => (double)p.Price),
+            (ProductSortField.Name, SortDirection.Desc) => query.OrderByDescending(p => p.Name),
+            _ => query.OrderBy(p => p.Name),
+        };
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
     }
 
     public async Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
