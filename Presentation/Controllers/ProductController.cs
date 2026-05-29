@@ -13,11 +13,12 @@ public class ProductController(IMediator mediator) : ControllerBase
     private readonly IMediator _mediator = mediator;
 
     [HttpGet]
-    [ProducesResponseType(typeof(List<ProductDto>), 200)]
+    [ProducesResponseType(typeof(PagedResponse<ProductDto>), 200)]
+    [ProducesResponseType(400)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<ProductDto>>> Get()
+    public async Task<ActionResult<PagedResponse<ProductDto>>> Get([FromQuery] GetProductsQuery query)
     {
-        var products = await _mediator.Send(new GetProductsQuery());
+        var products = await _mediator.Send(query);
         return Ok(products);
     }
 

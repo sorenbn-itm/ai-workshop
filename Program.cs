@@ -5,6 +5,7 @@ using CleanCQRSPOC.Presentation.Filters;
 using CleanCQRSPOC.Presentation.Models;
 using CleanCQRSPOC.Presentation.Validators;
 using CleanCQRSPOC.Domain.Events;
+using CleanCQRSPOC.Application.Queries;
 
 namespace CleanCQRSPOC;
 
@@ -21,6 +22,7 @@ public static partial class Program
         });
 
         builder.Services.AddScoped<IValidator<ProductDto>, ProductDtoValidator>();
+        builder.Services.AddScoped<IValidator<GetProductsQuery>, GetProductsQueryValidator>();
         builder.Services.AddScoped<ValidationFilter>();
         builder.Services.AddScoped<LoggingFilter>();
         builder.Services.AddScoped<CleanCQRSPOC.Application.Services.IEmailService, CleanCQRSPOC.Application.Services.EmailService>();
