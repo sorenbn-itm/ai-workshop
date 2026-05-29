@@ -65,4 +65,5 @@ public class ProductController(IMediator mediator) : ControllerBase
         if (!result) return NotFound();
         return NoContent();
     }
+
 }
