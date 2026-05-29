@@ -18,7 +18,7 @@ public class ValidationFilter(IServiceProvider serviceProvider) : IAsyncActionFi
             if (_serviceProvider.GetService(validatorType) is IValidator validator)
             {
                 var validationContext = new ValidationContext<object>(argument);
-                var result = await ((IValidator<object>)validator).ValidateAsync(validationContext);
+                var result = await validator.ValidateAsync(validationContext, context.HttpContext.RequestAborted);
                 if (!result.IsValid)
                 {
                     context.Result = new BadRequestObjectResult(result.Errors.Select(e => e.ErrorMessage));

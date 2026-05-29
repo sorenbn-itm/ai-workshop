@@ -12,6 +12,56 @@ public class ProductRepository(AppDbContext context) : IProductRepository
         return await _context.Products.ToListAsync();
     }
 
+    public async Task<(List<Product> Items, int TotalCount)> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? search,
+        decimal? minPrice,
+        decimal? maxPrice,
+        string? sort,
+        string sortDir,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Products.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLower();
+            query = query.Where(p => p.Name.ToLower().Contains(normalizedSearch));
+        }
+
+        if (minPrice.HasValue)
+        {
+            query = query.Where(p => p.Price >= minPrice.Value);
+        }
+
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(p => p.Price <= maxPrice.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+
+        query = sort?.ToLowerInvariant() switch
+        {
+            "name" => descending
+                ? query.OrderByDescending(p => p.Name).ThenBy(p => p.Id)
+                : query.OrderBy(p => p.Name).ThenBy(p => p.Id),
+            "price" => descending
+                ? query.OrderByDescending(p => p.Price).ThenBy(p => p.Id)
+                : query.OrderBy(p => p.Price).ThenBy(p => p.Id),
+            _ => query.OrderBy(p => p.Id)
+        };
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
     public async Task<Product?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.Products.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
